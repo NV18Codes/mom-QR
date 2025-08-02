@@ -38,8 +38,8 @@ const QRGenerator = () => {
 
       if (error) throw error;
 
-      // Create scan URL
-      const scanUrl = `${window.location.origin}/scan/${uniqueCode}`;
+      // Create scan URL - use the deployed Vercel URL
+      const scanUrl = `https://mom-qr-tau.vercel.app/scan/${uniqueCode}`;
       
       // Generate QR code image
       const qrDataUrl = await QRCode.toDataURL(scanUrl, {
