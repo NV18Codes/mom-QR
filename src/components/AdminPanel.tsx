@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
-import { Badge } from '@/components/ui/badge';
-import { RefreshCw, QrCode, Users, Clock, CheckCircle } from 'lucide-react';
+import { QrCode, Users, Clock, CheckCircle, Filter } from 'lucide-react';
+import QRCodeItem from './QRCodeItem';
 
 interface QRStats {
   totalGenerated: number;
@@ -37,10 +37,11 @@ const AdminPanel = () => {
   });
   const [qrCodes, setQrCodes] = useState<QRCodeData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [filter, setFilter] = useState<'all' | 'scanned' | 'unscanned'>('all');
 
   const fetchStats = async () => {
     try {
-      // Get QR codes with detailed scan information
+      // Get ALL QR codes with detailed scan information (including expired ones)
       const { data: qrData, error: qrError } = await supabase
         .from('qr_codes')
         .select(`
@@ -55,7 +56,8 @@ const AdminPanel = () => {
             user_fingerprint
           )
         `)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(50); // Limit to last 50 QR codes to prevent performance issues
 
       if (qrError) throw qrError;
 
@@ -209,68 +211,56 @@ const AdminPanel = () => {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-3">
           <CardTitle className="text-lg">QR Code History</CardTitle>
-          <Button onClick={fetchStats} variant="outline" size="sm" className="h-8">
-            <RefreshCw className="h-3 w-3 mr-1" />
-            Refresh
-          </Button>
+          <div className="flex space-x-2">
+            <Button
+              variant={filter === 'all' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setFilter('all')}
+              className="h-8"
+            >
+              All
+            </Button>
+            <Button
+              variant={filter === 'scanned' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setFilter('scanned')}
+              className="h-8"
+            >
+              <CheckCircle className="h-3 w-3 mr-1" />
+              Scanned
+            </Button>
+            <Button
+              variant={filter === 'unscanned' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setFilter('unscanned')}
+              className="h-8"
+            >
+              Unscanned
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           <div className="max-h-96 overflow-y-auto">
-            {qrCodes.map((qr) => {
-              const isExpired = new Date(qr.expires_at) <= new Date();
-              const timeLeft = Math.max(0, new Date(qr.expires_at).getTime() - new Date().getTime());
-              const minutesLeft = Math.floor(timeLeft / 60000);
-              const secondsLeft = Math.floor((timeLeft % 60000) / 1000);
-              
-              return (
-                <div key={qr.id} className="border-b last:border-b-0 p-4 hover:bg-muted/50 transition-colors">
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-2 flex-1">
-                      <div className="flex items-center space-x-2">
-                        <code className="text-sm bg-muted px-2 py-1 rounded font-mono">
-                          {qr.code}
-                        </code>
-                        <Badge variant={isExpired ? "destructive" : "default"} className="text-xs">
-                          {isExpired ? "Expired" : `${minutesLeft}:${secondsLeft.toString().padStart(2, '0')}`}
-                        </Badge>
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-                        <div>Created: {new Date(qr.created_at).toLocaleString()}</div>
-                        <div>Expires: {new Date(qr.expires_at).toLocaleString()}</div>
-                      </div>
-                      
-                      {qr.recent_scans.length > 0 && (
-                        <div className="space-y-1">
-                          <p className="text-xs font-medium">Recent Scans:</p>
-                          {qr.recent_scans.map((scan) => (
-                            <div key={scan.id} className="text-xs text-muted-foreground ml-2">
-                              • {new Date(scan.scanned_at).toLocaleString()} 
-                              <span className="ml-2 font-mono text-xs">
-                                ({scan.user_fingerprint.substring(0, 8)}...)
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="text-right space-y-1 ml-4">
-                      <div className="flex items-center space-x-1">
-                        <CheckCircle className="h-3 w-3 text-green-600" />
-                        <span className="text-sm font-bold">{qr.scan_count}</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground">scans</p>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+            {qrCodes
+              .filter(qr => {
+                if (filter === 'all') return true;
+                if (filter === 'scanned') return qr.scan_count > 0;
+                if (filter === 'unscanned') return qr.scan_count === 0;
+                return true;
+              })
+              .map((qr) => (
+                <QRCodeItem key={qr.id} qr={qr} />
+              ))}
             
-            {qrCodes.length === 0 && (
+            {qrCodes.filter(qr => {
+              if (filter === 'all') return true;
+              if (filter === 'scanned') return qr.scan_count > 0;
+              if (filter === 'unscanned') return qr.scan_count === 0;
+              return true;
+            }).length === 0 && (
               <div className="p-8 text-center text-muted-foreground">
                 <QrCode className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                <p>No QR codes generated yet</p>
+                <p>No QR codes found</p>
               </div>
             )}
           </div>
