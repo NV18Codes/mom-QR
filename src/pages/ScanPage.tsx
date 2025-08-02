@@ -70,9 +70,9 @@ const ScanPage = () => {
 
         setStatus('success');
         
-        // Redirect to mealsonme.com after 3 seconds
+        // Redirect to hellomealsonme.com after 3 seconds
         setTimeout(() => {
-          window.location.href = 'https://www.mealsonme.com';
+          window.location.href = 'http://www.hellomealsonme.com';
         }, 3000);
 
       } catch (error) {
@@ -107,7 +107,7 @@ const ScanPage = () => {
             <CardContent className="text-center">
               <p>QR code scanned successfully!</p>
               <p className="text-sm text-muted-foreground mt-2">
-                Redirecting to mealsonme.com in 3 seconds...
+                Redirecting to hellomealsonme.com in 3 seconds...
               </p>
             </CardContent>
           </Card>
