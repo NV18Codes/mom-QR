@@ -14,7 +14,59 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      qr_codes: {
+        Row: {
+          code: string
+          created_at: string
+          expires_at: string
+          id: string
+          is_active: boolean
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          is_active?: boolean
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          is_active?: boolean
+        }
+        Relationships: []
+      }
+      qr_scans: {
+        Row: {
+          id: string
+          qr_code_id: string
+          scanned_at: string
+          user_fingerprint: string
+        }
+        Insert: {
+          id?: string
+          qr_code_id: string
+          scanned_at?: string
+          user_fingerprint: string
+        }
+        Update: {
+          id?: string
+          qr_code_id?: string
+          scanned_at?: string
+          user_fingerprint?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qr_scans_qr_code_id_fkey"
+            columns: ["qr_code_id"]
+            isOneToOne: false
+            referencedRelation: "qr_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
